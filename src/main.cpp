@@ -17,6 +17,8 @@ constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
 
+const double latency = 0.1; //seconds
+#define LATENCY_COMP
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
@@ -90,7 +92,9 @@ int main() {
           double px = j[1]["x"];
           double py = j[1]["y"];
           double psi = j[1]["psi"];
-          double v = j[1]["speed"];
+          double v = double(j[1]["speed"]) * 0.44704; //convert mph to mps
+          double current_steer = j[1]["steering_angle"];
+          double current_throttle = j[1]["throttle"];
 
           //convert waypoints to vehicle coordinate frame
           Eigen::VectorXd global_waypoint(2);
@@ -119,13 +123,24 @@ int main() {
           Eigen::Map<Eigen::VectorXd> eigen_ptsy(y_ptr, ptsy.size());
 
           auto coeffs = polyfit(eigen_ptsx,eigen_ptsy,3);
+#ifdef LATENCY_COMP
+          //project current vehicle pose forward by ammount of latency
+          double ego_x = 0 + v*cos(0)*latency;
+          double ego_y = 0 + v*sin(0)*latency;
+          double ego_psi = 0 + v/Lf*current_steer*deg2rad(25)*latency;
+          double ego_v = v + current_throttle*latency;
+          double ego_cte = polyeval(coeffs, ego_x) - ego_y;
+          double ego_epsi = -atan(coeffs[1])+v/Lf*current_steer*deg2rad(25)*latency;
+#else          
+          
           double ego_x = 0;
           double ego_y = 0;
           double ego_psi = 0;
-          double ego_v = v * 0.44704;
+          double ego_v = v;
           double ego_cte = polyeval(coeffs, ego_x) - ego_y;
           double ego_epsi = -atan(coeffs[1]);
-          
+#endif
+
           Eigen::VectorXd state(6);
           state << ego_x,ego_y,ego_psi,ego_v,ego_cte,ego_epsi;
 
@@ -135,7 +150,7 @@ int main() {
 
           auto result = mpc.Solve(state, coeffs, mpc_x_vals, mpc_y_vals);
           steer_value = -result[0] / deg2rad(25);
-          throttle_value = result[1] / 10;
+          throttle_value = result[1];
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
