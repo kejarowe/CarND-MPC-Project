@@ -1,5 +1,30 @@
-# CarND-Controls-MPC
+# Model Predictive Control project
 Self-Driving Car Engineer Nanodegree Program
+
+The purpose of this project is to develop a Model Predictive Controller to drive a car in the Udacity simulator. Given a model of the car and a desired trajectory, the controller is able to generate the sequence of optimal actuator commands for the finite time horizon, within the discritization tolerance. The first command in this sequence is sent to the actuators, then the process is repeated from the updated state.
+
+![Screenshot of MPC guiding simulated vechicle around Udacity track](mpc_screenshot.png)
+
+For this project, a kinematic model of a car called a 'bicycle model' was used. In this model, both the front and rear axles are approximated as a single wheel, like a bicycle. The actuators used were the steering angle `delta` and longitudinal acceleration `a`. The trajectory was provided to the controller as a 3rd order polynomial f(x). The trajectory tracking errors used were 'cross track error' `cte`, and heading error `e_psi`. The following equations were used to model the system:
+
+`x[t+1] = x[t] + v[t]*cos(psi[t])*dt`
+
+`y[t+1] = y[t] + v[t]*sin(psi[t])*dt`
+
+`psi[t+1] = psi[t] + v[t]/Lf * delta[t] * dt`
+
+`v[t+1] = v[t] + a[t]*dt`
+
+`cte[t+1] = f(x[t]) - y[t] + v[t]*sin(e_psi[t])*dt;`
+
+`e_psi[t+1] = e_psi[t] + v[t]/Lf * delta[t] * dt`
+
+The horizon for the MPC optimization is the product of the number of simulation steps `N` and simulation discritization `dt`. In the course lectures, 25 simulation steps were used with a discritization of 50ms. In my project, I experimented with several different values, but settled on 25 steps with a discritization of 100ms. This extended my horizon and gave me good results.
+
+The simulation provided relevant trajectory waypoints for the vehicles's current location, however, both the trajectory waypoints and the vehicle's location and heading were given in the global reference frame. To simplify the MPC calculations, I converted both the waypoints and the vehicle's location to the vehicle coordinate frame. This was acheived by translating, then rotating the points in the global coordinate frame using the vehicle's current location and heading. Then, the trajectory points were fit to a 3rd order polynomial, whose coefficents were fed to the MPC. 
+
+The final challenge was to account for the 100ms control latency. To do this, I projected the current state of the vehicle forward by the latency time using the current actuator values, then used that as the initial state for the MPC. Thus, the optimal action computed by the MPC would be the optimal action at the time that the controls take effect. 
+
 
 ---
 
