@@ -23,8 +23,8 @@ const double Lf = 2.67;
 
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 10 * 0.44704; //40mph in mps
-double max_accel = 0.20;
+double ref_v = 30 * 0.44704; //30mph in mps
+double max_accel = 1.00;
 
 size_t x_start = 0;
 size_t y_start = x_start + N;
@@ -66,15 +66,15 @@ class FG_eval {
     // TODO: Define the cost related the reference state and
     // actuator costs
     for (int i = 0; i < N-1; i++){
-      fg[0] += CppAD::pow(vars[delta_start + i], 2);
-      fg[0] += CppAD::pow(vars[a_start + i], 2);
+      fg[0] += 5*CppAD::pow(vars[delta_start + i], 2);
+      fg[0] += 50*CppAD::pow(vars[a_start + i], 2);
     }
     
     // any anything you think may be beneficial.
     //actuator smoothness
     for (int i = 0; i < N-2; i++){
-      fg[0] += CppAD::pow(vars[delta_start+i+1]-vars[delta_start+i],2);
-      fg[0] += CppAD::pow(vars[a_start+i+1]-vars[a_start+i],2);
+      fg[0] += 700*CppAD::pow(vars[delta_start+i+1]-vars[delta_start+i],2);
+      fg[0] += 10*CppAD::pow(vars[a_start+i+1]-vars[a_start+i],2);
     }
 
     //
